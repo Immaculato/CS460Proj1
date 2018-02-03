@@ -2,8 +2,19 @@
 #Assignment: Project 1 - cS460G Machine Learning, Dr. Harrison
 
 import math
+import sys
 
-FILENAME='synthetic-1.csv'
+class Node:
+    children = list()
+    label = -1
+
+    def label1(self):
+        self.label = 1
+        return self
+
+    def label0(self):
+        self.label = 0
+        return self
 
 #this class is only designed to work for the data in this project.
 class TestData:
@@ -14,6 +25,7 @@ class TestData:
     binList2 = list()
     classLabelList = list()
     distinctClassLabels = set()
+    unbranchedFeatures = {0, 1}
 
     def __debugPrint(self):
         if self.debug:
@@ -61,7 +73,7 @@ class TestData:
             for k in range(len(classLabelList)):
                 if (int(classLabelList[k]) == int(i)):
                     numEquals+=1
-            print(i, numEquals)
+            #print(i, numEquals)
             #add to the total entropy for each bin (making sure it can be evaluated)
             if (numEquals == 0 or len(classLabelList) == 0):
                 entropyTot+=0
@@ -79,8 +91,7 @@ class TestData:
         elif (featureIndex == 2):
             binList = self.binList2
 
-        informationGainTot = self.__entropy(self.distinctClassLabels, self.classLabelList)
-        print 'previous', informationGainTot
+        informationGainTot = self.__entropy(self.distinctClassLabels, classLabelList)
         #count the instances in each bin
         #2d list containing indexes of contents for each bin
         binContents = list()
@@ -96,16 +107,38 @@ class TestData:
             #continue calculating information gain
             informationGainTot -= (numInBin/len(featureList))*self.__entropy(self.distinctClassLabels, binContents[i])
 
-        print 'after', informationGainTot
-
         return informationGainTot
 
+    def ID3(self, classLabelList, unbranchedFeatures):
+        root = Node()
+        num1 = 0
+        num0 = 0
+        #count the instances of 0's and 1's to check for uniformity.
+        for i in range(len(classLabelList)):
+            if classLabelList[i] == 0:
+                num0+=1
+            elif classLabel[i] == 1:
+                num1+=1
+        #if we have a uniform set, we're done! label the node.
+        if num0==len(classLabelList):
+            return root.label0()
+        elif num1==len(classLabelList):
+            return root.label1()
+        #if we're out of features to branch on, return the most common label (with 0 breaking ties)
+        elif len(unbranchedFeatures) == 0:
+            if num0>=num1:
+                return root.label0()
+            elif num1>num0:
+                return root.label1()
+        #begin the algorithm!
+        maxInfoGain = 0
+        for i in range(len(unbranchedFeatures)):
+            #need to do information gain
+            print "just coded myself into a corner and need to make feature list extensible"
 
 
+        
 
-        #print(self.__entropy(self.distinctClassLabels, self.classLabelList))
-        #for i in range()
-        #self.__entropy(featureList, binList) + 
 
 
     #initialization takes a filename.
@@ -113,10 +146,10 @@ class TestData:
         self.debug = debug
         file = None
         try:
-            file = open(FILENAME, "r")
+            file = open(filename, "r")
         except:
             invalidNumFields = True
-            print(FILENAME, 'not found')
+            print(filename, 'not found')
             exit -1
         #for each line in the file, parse the features and class labels into parallel lists.
         for line in file:
@@ -136,25 +169,17 @@ class TestData:
         for i in range(len(self.featureList1)):
             print(self.featureList1[i]+','+self.featureList2[i]+','+self.classLabelList[i])
 
-    
-class FeatureBin:
-    binMin = 0.0
-    binMax = 0.0
-
-    def __init__(self, min, max):
-        self.binMax = max
-        self.binMin = min
-
-    def printBin(self):
-        print(self.binMin, self.binMax),
-
 
 
 def main():
+    if (len(sys.argv) != 2):
+        print "Takes 1 command line argument: the name of the csv file."
+        exit -1;
+    filename = sys.argv[1]
     #initialize the TestData object
     isDebugMode = True
     numBins = 10
-    rawData = TestData(FILENAME, numBins, isDebugMode)
+    rawData = TestData(filename, numBins, isDebugMode)
     print 'done'
 
 main()
