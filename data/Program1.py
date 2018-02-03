@@ -50,31 +50,62 @@ class TestData:
         self.binList1.append(binMax1)
         self.binList2.append(binMax2)
 
-    def __entropy(self, featureList, featureIndex):
+    def __entropy(self, distinctClassLabels, classLabelList):
+
+        entropyTot = 0.0
+        #for each class label in the list
+        for i in distinctClassLabels:
+            #contains the number of instances for each class label
+            numEquals=0.0
+            #mark the number of values for each class label.
+            for k in range(len(classLabelList)):
+                if (int(classLabelList[k]) == int(i)):
+                    numEquals+=1
+            print(i, numEquals)
+            #add to the total entropy for each bin (making sure it can be evaluated)
+            if (numEquals == 0 or len(classLabelList) == 0):
+                entropyTot+=0
+            else:
+                #print(numEquals)
+                ratioInBin = (numEquals/len(classLabelList))
+                entropyTot += -(ratioInBin*math.log(ratioInBin, 2))
+
+        return entropyTot
+
+    def __informationGain(self, featureList, featureIndex, classLabelList):
         binList = None
         if (featureIndex == 1):
             binList = self.binList1
         elif (featureIndex == 2):
             binList = self.binList2
 
-        print(len(featureList))
-        entropyTot = 0.0
-        #for each bin in the list
+        informationGainTot = self.__entropy(self.distinctClassLabels, self.classLabelList)
+        print 'previous', informationGainTot
+        #count the instances in each bin
+        #2d list containing indexes of contents for each bin
+        binContents = list()
         for i in range(len(binList)-1):
             numInBin = 0.0
             #for each feature value, see if it fits in the current bin.
             for k in range(len(featureList)):
+                binContents.append(list())
                 if (featureList[k] >= binList[i] and featureList[k] <= binList[i+1]):
                     numInBin+=1
-            #add to the total entropy for each bin.
-            ratioInBin = (numInBin/len(featureList))
-            print(ratioInBin)
-            if ratioInBin == 0:
-                entropyTot+=0
-            else:
-                entropyTot += -(ratioInBin*math.log(ratioInBin, 2))
+                    #add its class label to the bin contents
+                    binContents[i].append(self.classLabelList[k])
+            #continue calculating information gain
+            informationGainTot -= (numInBin/len(featureList))*self.__entropy(self.distinctClassLabels, binContents[i])
 
-        return entropyTot
+        print 'after', informationGainTot
+
+        return informationGainTot
+
+
+
+
+        #print(self.__entropy(self.distinctClassLabels, self.classLabelList))
+        #for i in range()
+        #self.__entropy(featureList, binList) + 
 
 
     #initialization takes a filename.
@@ -98,7 +129,8 @@ class TestData:
 
         self.__discretizeFeaturesEquidistant(numBins)
         self.__debugPrint()
-        print("entropy",self.__entropy(self.featureList1, 1))
+        self.__informationGain(self.featureList1, 1, self.classLabelList)
+        #print("entropy",self.__entropy(self.featureList1, 1))
 
     def printList(self):
         for i in range(len(self.featureList1)):
