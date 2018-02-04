@@ -1,6 +1,8 @@
 #Tristan Basil
 #Assignment: Project 1 - cS460G Machine Learning, Dr. Harrison
 
+import matplotlib.pyplot as plt
+import numpy as np
 import math
 import sys
 import copy
@@ -105,7 +107,7 @@ class ID3Tree:
 
         return informationGainTot
 
-    def __ID3(self, examplesIndexList, unbranchedFeatures, root):
+    def __ID3(self, examplesIndexList, unbranchedFeatures, root, depth):
 
         num1 = 0
         num0 = 0
@@ -124,16 +126,17 @@ class ID3Tree:
             root.label = 1
             return root
 
-        #if we're out of features to branch on, return the most common label (with 0 breaking ties)
+        #if we're out of features to branch on, or at a depth of 3, return the most common label (with 0 breaking ties)
 
-        if len(unbranchedFeatures) == 0:
+        if len(unbranchedFeatures) == 0 or depth == 3:
             if num0>=num1:
                 root.label = 0
                 return root
             elif num1>num0:
                 root.label = 1
                 return root
-        #begin the algorithm!
+        #begin the algorithm! we're going down the tree now.
+        depth += 1
         maxInfoGain = -1
         #for each unbranched feature, get the information gain for that feature.
         for i in unbranchedFeatures:
@@ -172,7 +175,7 @@ class ID3Tree:
                     child.label = 1
             #otherwise, we recursively call ID3 and keep on going.
             else:
-                self.__ID3(newExamplesIndexList, newUnbranchedFeatures, child)
+                self.__ID3(newExamplesIndexList, newUnbranchedFeatures, child, depth)
 
         return root
 
@@ -187,18 +190,17 @@ class ID3Tree:
             for j in range(len(self.featureLists)):
                 #pivot our parallel lists from the 2d array into a 1d array.
                 features.append(self.featureLists[j][i])
-            #traverse the tree to find the result. 
-            successes += self.__isTreeCorrect(self.rootTreeNode, features, classValue)
+            #traverse the tree to find the result.
+            result = self.__isTreeCorrect(self.rootTreeNode, features)
+            if result == classValue:
+                successes += 1
 
         return 1 - (successes/len(self.classLabelList))
 
-    def __isTreeCorrect(self, node, features, classValue):
+    def __isTreeCorrect(self, node, features):
         #if the node is labeled, we're done.
         if node.label != None:
-            if classValue == node.label:
-                return 1
-            else:
-                return 0
+            return node.label
 
         #if the node has a feature index, we split on that.
         if node.featureIndex != None:
@@ -206,7 +208,7 @@ class ID3Tree:
             #for each child, find the correct bin.
             for child in node.children:
                 if featureValue >= child.featureMin and featureValue <= child.featureMax:
-                    return self.__isTreeCorrect(child, features, classValue)
+                    return self.__isTreeCorrect(child, features)
 
 
 
@@ -251,7 +253,7 @@ class ID3Tree:
         #set a root node
         self.rootTreeNode = Node()
         #kick off ID3!
-        self.__ID3(examplesIndexList, self.unbranchedFeatures, self.rootTreeNode)
+        self.__ID3(examplesIndexList, self.unbranchedFeatures, self.rootTreeNode, 0)
         #print("entropy",self.__entropy(self.distinctClassLabels, self.classLabelList))
 
     def printList(self):
@@ -269,6 +271,55 @@ class ID3Tree:
                 #child.printNode()
                 #print child.children
                 self.printTree(child, depth)
+
+    def printChart(self):
+        #green for a 1, red for a 0 on the chart
+        colors = list()
+        for result in self.classLabelList:
+            colors.append('#cc2222') if result == 0 else colors.append('#39c539')
+
+
+        plt.hold(True)
+        #plt.subplot2grid((1, 1), (0, 0))
+
+        stepSize = .1
+        #populate our approximation points to visualize our decision area.
+        classValues = list()
+        xValuesSuccess = list()
+        xValuesFail = list()
+        yValuesSuccess = list()
+        yValuesFail = list()
+
+        feature1min = min(self.featureLists[0])-2.0
+        feature1max = max(self.featureLists[0])+2.0
+        feature2min = min(self.featureLists[1])-2.0
+        feature2max = max(self.featureLists[1])+2.0
+
+        #classify a grid across our sample space, which will make up the 'background' by fitting together.
+        for i in np.arange(feature1min, feature1max, stepSize):
+            for j in np.arange(feature2min, feature2max, stepSize):
+                result = self.__isTreeCorrect(self.rootTreeNode, [i, j])
+                if result == 1:
+                    xValuesSuccess.append(i)
+                    yValuesSuccess.append(j)
+                elif result == 0:
+                    xValuesFail.append(i)
+                    yValuesFail.append(j)
+        
+
+        plt.scatter(self.featureLists[0], self.featureLists[1], c=colors, zorder=15)
+        plt.plot(xValuesFail,yValuesFail,'s',color="#e75e5e", ms=8, mec="red", markeredgewidth=0.0, zorder=10)
+        plt.plot(xValuesSuccess,yValuesSuccess,'s',color="#77d582", ms=8, mec="red", markeredgewidth=0.0, zorder=5)
+        axes = plt.gca()
+        #make the axes a little bigger than our max values for some breathing room
+        axes.set_xlim([self.binLists[0][0]-0.5,self.binLists[0][len(self.binLists[0])-1]+0.5])
+        axes.set_ylim([self.binLists[1][0]-0.5,self.binLists[1][len(self.binLists[1])-1]+0.5])
+
+        plt.title(sys.argv[1])
+        plt.xlabel('Feature 1')
+        plt.ylabel('Feature 2')
+
+        plt.show()
         
 
 
@@ -284,10 +335,13 @@ def main():
     #initialize tree
     treeObj = ID3Tree(filename, numBins, isDebugMode)
     #print the tree. spoilers: its REALLY ugly
-    treeObj.printTree(treeObj.rootTreeNode, 0)
+    #treeObj.printTree(treeObj.rootTreeNode, 0)
     #test it against the training data
     error = treeObj.testAgainstSelf()
-
     print "error: " + str(error)
+
+    treeObj.printChart()
+
+
 
 main()
