@@ -176,6 +176,41 @@ class ID3Tree:
 
         return root
 
+    #this function in particular is very specific to testing this project, although the rest of the code might be possible to modify for a similar case.
+    def testAgainstSelf(self):
+        #we've already parsed all the data from the file, so we can reuse it here and run through the tree.
+        successes = 0.0
+        #for each row and feature,
+        for i in range(len(self.classLabelList)):
+            features = list()
+            classValue = self.classLabelList[i]
+            for j in range(len(self.featureLists)):
+                #pivot our parallel lists from the 2d array into a 1d array.
+                features.append(self.featureLists[j][i])
+            #traverse the tree to find the result. 
+            successes += self.__isTreeCorrect(self.rootTreeNode, features, classValue)
+
+        return 1 - (successes/len(self.classLabelList))
+
+    def __isTreeCorrect(self, node, features, classValue):
+        #if the node is labeled, we're done.
+        if node.label != None:
+            if classValue == node.label:
+                return 1
+            else:
+                return 0
+
+        #if the node has a feature index, we split on that.
+        if node.featureIndex != None:
+            featureValue = float(features[node.featureIndex])
+            #for each child, find the correct bin.
+            for child in node.children:
+                if featureValue >= child.featureMin and featureValue <= child.featureMax:
+                    return self.__isTreeCorrect(child, features, classValue)
+
+
+
+
     #initialization takes a filename.
     def __init__(self, filename, numBins, debug):
         self.debug = debug
@@ -250,5 +285,9 @@ def main():
     treeObj = ID3Tree(filename, numBins, isDebugMode)
     #print the tree. spoilers: its REALLY ugly
     treeObj.printTree(treeObj.rootTreeNode, 0)
+    #test it against the training data
+    error = treeObj.testAgainstSelf()
+
+    print "error: " + str(error)
 
 main()
