@@ -19,10 +19,12 @@ class Node:
 #this class is only designed to work for the data in this project.
 class TestData:
     debug = False
-    featureList1 = list()
-    featureList2 = list()
-    binList1 = list()
-    binList2 = list()
+    featureLists = list()
+    #featureList1 = list()
+    #featureList2 = list()
+    binLists = list()
+    #binList1 = list()
+    #binList2 = list()
     classLabelList = list()
     distinctClassLabels = set()
     unbranchedFeatures = {0, 1}
@@ -31,23 +33,27 @@ class TestData:
         if self.debug:
             print " --- DEBUG INFO --- "
             print "class labels: " + str(self.distinctClassLabels)
-            print "max feature 1: " + str(max(self.featureList1))
-            print "min feature 1: " + str(min(self.featureList1))
-            print "discretized bins feature 1:",
-            for i in range(len(self.binList1)):
-                print(self.binList1[i]),
-                print "-",
-            print ""
-            print "max feature 2: " + str(max(self.featureList2))
-            print "min feature 2: " + str(min(self.featureList2))
-            print "discretized bins feature 2:",
-            for i in range(len(self.binList2)):
-                print(self.binList2[i]),
-                print "-",
-            print ""
+            for i in range(len(self.featureLists)):
+                print "max feature " + str(i) + ": " + str(max(self.featureLists[i]))
+                print "min feature " + str(i) + ": " + str(min(self.featureLists[i]))
+                print "discretized bins feature 1:",
+                for j in range(len(self.binLists[i])):
+                    print(self.binLists[i][j]),
+                    print "-",
+                print ""
             print " --- END DEBUG --- "
 
     def __discretizeFeaturesEquidistant(self, numBins):
+        for i in range(len(self.featureLists)):
+            binMin = min(self.featureLists[i])
+            binMax = max(self.featureLists[i])
+            binSize = (binMax - binMin) / float(numBins)
+            for j in range(numBins):
+                self.binLists[i].append(binMin+(j*binSize))
+            self.binLists[i].append(binMax)
+
+
+        '''
         binMin1 = min(self.featureList1)
         binMin2 = min(self.featureList2)
         binMax1 = max(self.featureList1)
@@ -61,6 +67,7 @@ class TestData:
         #small errors can mean we miss the end value, so append those on manually.
         self.binList1.append(binMax1)
         self.binList2.append(binMax2)
+        '''
 
     def __entropy(self, distinctClassLabels, classLabelList):
 
@@ -85,11 +92,7 @@ class TestData:
         return entropyTot
 
     def __informationGain(self, featureList, featureIndex, classLabelList):
-        binList = None
-        if (featureIndex == 1):
-            binList = self.binList1
-        elif (featureIndex == 2):
-            binList = self.binList2
+        binList = self.binLists[featureIndex]
 
         informationGainTot = self.__entropy(self.distinctClassLabels, classLabelList)
         #count the instances in each bin
@@ -151,23 +154,33 @@ class TestData:
             invalidNumFields = True
             print(filename, 'not found')
             exit -1
+        #quickly get the number of features from the file, and initialize the lists.
+        fileBeginning = file.tell()
+        numFeatures = len(file.readline().split(',')) - 1
+        for i in range(numFeatures):
+            self.featureLists.append(list())
+            self.binLists.append(list())
+        file.seek(fileBeginning)
+
         #for each line in the file, parse the features and class labels into parallel lists.
         for line in file:
             parsedLine = line.split(',')
-            self.featureList1.append(float(parsedLine[0]))
-            self.featureList2.append(float(parsedLine[1]))
-            classLabel = parsedLine[2].rstrip()
+            for i in range(len(self.featureLists)):
+                self.featureLists[i].append(float(parsedLine[i]))
+            classLabel = parsedLine[len(parsedLine)-1].rstrip()
             self.classLabelList.append(classLabel)
             self.distinctClassLabels.add(classLabel)
 
         self.__discretizeFeaturesEquidistant(numBins)
         self.__debugPrint()
-        self.__informationGain(self.featureList1, 1, self.classLabelList)
-        #print("entropy",self.__entropy(self.featureList1, 1))
+        #self.printList()
+        self.__informationGain(self.featureLists[0], 0, self.classLabelList)
+        #print("entropy",self.__entropy(self.distinctClassLabels, self.classLabelList))
 
     def printList(self):
-        for i in range(len(self.featureList1)):
-            print(self.featureList1[i]+','+self.featureList2[i]+','+self.classLabelList[i])
+        for j in range(len(self.featureLists[0])):
+            print str(self.featureLists[0][j]), str(self.featureLists[1][j]),
+            print self.classLabelList[j]
 
 
 
