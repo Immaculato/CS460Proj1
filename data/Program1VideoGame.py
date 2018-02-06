@@ -1,5 +1,7 @@
 #Tristan Basil
 #Assignment: Project 1 - cS460G Machine Learning, Dr. Harrison
+#https://stackoverflow.com/questions/32796531/how-to-get-the-most-common-element-from-a-list-in-python
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,6 +9,8 @@ import math
 import sys
 import copy
 import pdb
+from collections import Counter
+
 
 class Node:
     children = None
@@ -17,17 +21,20 @@ class Node:
     featureString = None
 
     def printNode(self):
-        print "featureIndex:", self.featureIndex, "featureString:", self.featureString, "featureMin/Max:", self.featureMin, self.featureMax, "label:", self.label,
+        print "featureIndex:", self.featureIndex, "featureString:", self.featureString, "featureMin/Max:", self.featureMin, self.featureMax, "label:", self.label
 
 #this class is only designed to work for the data in this project.
 class ID3Tree:
     debug = False
+    maxDepth = 0
     featureLists = list()
     #declare how each data type should be handled.
     featureTypes = ['s', 's', 's', 's', 'f', 'f', 'f', 'f', 'f', 's', 's']
     binLists = list()
     classLabelList = list()
     distinctClassLabels = set()
+    #contains bins for the class labels.
+    distinctClassBins = list([(0, 10), (10, 20), (20, 30), (30, 40), (40, 50), (50, 60), (60, 70), (70, 80), (80, 90), (90, 100)])
     unbranchedFeatures = set()
     rootTreeNode = Node()
 
@@ -35,6 +42,7 @@ class ID3Tree:
         if self.debug:
             print " --- DEBUG INFO --- "
             print "class labels: " + str(self.distinctClassLabels)
+            print "class bins: " + str(self.distinctClassBins)
             for i in range(len(self.featureLists)):
                 if self.featureTypes[i] == 'f':
                     print "max feature " + str(i) + ": " + str(max(self.featureLists[i]))
@@ -72,17 +80,19 @@ class ID3Tree:
                         self.binLists[i].append(stringValue)
 
 
-    def __entropy(self, distinctClassLabels, classLabelList):
+    def __entropy(self, distinctClassBins, classLabelList):
 
         entropyTot = 0.0
-        #for each class label in the list
-        for i in distinctClassLabels:
-            #contains the number of instances for each class label
+        indexesUsed = list()
+        #for each class label bin in the list
+        for i in distinctClassBins:
+            #contains the number of instances for each class label bin
             numEquals=0.0
             #mark the number of values for each class label.
             for k in range(len(classLabelList)):
-                if (int(classLabelList[k]) == int(i)):
+                if k not in indexesUsed and self.__valueInBin(int(classLabelList[k]), i):
                     numEquals+=1
+                    indexesUsed.append(k)
             #print(i, numEquals)
             #add to the total entropy for each bin (making sure it can be evaluated)
             if (numEquals == 0 or len(classLabelList) == 0):
@@ -101,7 +111,7 @@ class ID3Tree:
         for i in classLabelIndexList:
             classLabelList.append(self.classLabelList[i])
 
-        informationGainTot = self.__entropy(self.distinctClassLabels, classLabelList)
+        informationGainTot = self.__entropy(self.distinctClassBins, classLabelList)
         #print'-----'
         #print 'before',informationGainTot
         #print 'featureIndex', featureIndex
@@ -129,36 +139,39 @@ class ID3Tree:
                         binContents[i].append(self.classLabelList[k])
 
             #continue calculating information gain
-            informationGainTot -= (numInBin/len(classLabelList))*self.__entropy(self.distinctClassLabels, binContents[i])
+            informationGainTot -= (numInBin/len(classLabelList))*self.__entropy(self.distinctClassBins, binContents[i])
             #print informationGainTot
 
         return informationGainTot
 
     def __ID3(self, examplesIndexList, unbranchedFeatures, root, depth):
-        #create a new dictionary, keyed on the class label value.
+        #create a new dictionary, keyed on the class bins.
         classLabelInstances = dict()
-        for i in self.distinctClassLabels:
+        for i in self.distinctClassBins:
             classLabelInstances[i] = 0
 
         #print len(classLabelInstances)
         #count the instances of each class label to check for uniformity.
-        #for each class label index, and distinct class label,
+        #for each class label index, and distinct class bin,
         for i in examplesIndexList:
-            for j in self.distinctClassLabels:
+            valueSorted = False
+            for j in self.distinctClassBins:
                 #see if we have a match. if we do, mark it.
-                if self.classLabelList[i] == j:
+                if not valueSorted and self.__valueInBin(self.classLabelList[i], j):
                     classLabelInstances[j]+=1
+                    valueSorted=True
         
         #if every example has the same class label, we're done! label the node.
-        for j in self.distinctClassLabels:
+        for j in self.distinctClassBins:
             if classLabelInstances[j]==len(examplesIndexList):
                 root.label=j
                 return root
 
         
-        #if we're out of features to branch on, or at a depth of 3, return the most common label (with 0 breaking ties)
-        if len(unbranchedFeatures) == 0 or depth == 1:
-            root.label = max(classLabelInstances)
+        #if we're out of features to branch on, or at the maximum depth, return the most common label (with 0 breaking ties)
+        if len(unbranchedFeatures) == 0 or depth == self.maxDepth:
+            countLabels = Counter(classLabelInstances)
+            root.label = countLabels.most_common(1)[0][0]
             return root
 
         #begin the algorithm! we're going down the tree now.
@@ -208,9 +221,11 @@ class ID3Tree:
                     if self.featureLists[root.featureIndex][exampleIndex] == child.featureString:
                         newExamplesIndexList.append(exampleIndex)
             #print newExamplesIndexList
-            #if the new example list is empty, then we just make a leaf with the most common feature in the examples. we already found these values earlier.
+            #if the new example list is empty, then we just make a leaf with the most common feature in the examples.
             if len(newExamplesIndexList) == 0:
-                root.label = max(classLabelInstances)
+                countLabels = Counter(classLabelInstances)
+                #print countLabels.most_common(1)[0][0]
+                child.label = countLabels.most_common(1)[0][0]
             #otherwise, we recursively call ID3 and keep on going.
             else:
                 #print newUnbranchedFeatures
@@ -232,8 +247,8 @@ class ID3Tree:
                 #pivot our parallel lists from the 2d array into a 1d array.
                 features.append(self.featureLists[j][i])
             #traverse the tree to find the result.
-            result = self.__isTreeCorrect(self.rootTreeNode, features)
-            if result == classValue:
+            resultBin = self.__isTreeCorrect(self.rootTreeNode, features)
+            if self.__valueInBin(classValue, resultBin):
                 successes += 1
 
         return 1 - (successes/len(self.classLabelList))
@@ -245,17 +260,27 @@ class ID3Tree:
 
         #if the node has a feature index, we split on that.
         if node.featureIndex != None:
-            featureValue = float(features[node.featureIndex])
+            featureValue = features[node.featureIndex]
             #for each child, find the correct bin.
             for child in node.children:
-                if featureValue >= child.featureMin and featureValue <= child.featureMax:
-                    return self.__isTreeCorrect(child, features)
+                if self.featureTypes[node.featureIndex] == 'f':
+                    if featureValue >= child.featureMin and featureValue <= child.featureMax:
+                        return self.__isTreeCorrect(child, features)
+                elif self.featureTypes[node.featureIndex] == 's':
+                    if featureValue == child.featureString:
+                        return self.__isTreeCorrect(child, features)
 
-
+    #helper function to determine if value is in a distinctClassBin
+    def __valueInBin(self, value, bin):
+        if value>=bin[0] and value<=bin[1]:
+            return True
+        else:
+            return False
 
 
     #initialization takes a filename.
-    def __init__(self, filename, numBins, debug):
+    def __init__(self, filename, numBins, maxDepth, debug):
+        self.maxDepth = maxDepth
         self.debug = debug
         file = None
         try:
@@ -312,7 +337,6 @@ class ID3Tree:
 
         self.__discretizeFeaturesEquidistant(numBins)
         self.__debugPrint()
-        #self.printList()
 
         #make a list of the example indexes to start ID3 (all of them)
         examplesIndexList = list()
@@ -324,16 +348,12 @@ class ID3Tree:
         #kick off ID3!
         self.__ID3(examplesIndexList, self.unbranchedFeatures, self.rootTreeNode, 0)
         #print("entropy",self.__entropy(self.distinctClassLabels, self.classLabelList))
-        
 
-    def printList(self):
-        for j in range(len(self.featureLists[0])):
-            print str(self.featureLists[0][j]), str(self.featureLists[1][j]),
-            print self.classLabelList[j]
 
     def printTree(self, root, depth):
         root.printNode()
-        print()
+        if root.label == None and root.featureIndex == None:
+            print '*************************************RED ALERT*********************************************'
         depth+=1
         if root.children != None:
             for child in root.children:     
@@ -341,57 +361,6 @@ class ID3Tree:
                 #child.printNode()
                 #print child.children
                 self.printTree(child, depth)
-
-    def printChart(self):
-        #green for a 1, red for a 0 on the chart
-        colors = list()
-        for result in self.classLabelList:
-            colors.append('#cc2222') if result == 0 else colors.append('#39c539')
-
-
-        plt.hold(True)
-        #plt.subplot2grid((1, 1), (0, 0))
-
-        stepSize = .1
-        #populate our approximation points to visualize our decision area.
-        classValues = list()
-        xValuesSuccess = list()
-        xValuesFail = list()
-        yValuesSuccess = list()
-        yValuesFail = list()
-
-        feature1min = min(self.featureLists[0])-2.0
-        feature1max = max(self.featureLists[0])+2.0
-        feature2min = min(self.featureLists[1])-2.0
-        feature2max = max(self.featureLists[1])+2.0
-
-        #classify a grid across our sample space, which will make up the 'background' by fitting together.
-        for i in np.arange(feature1min, feature1max, stepSize):
-            for j in np.arange(feature2min, feature2max, stepSize):
-                result = self.__isTreeCorrect(self.rootTreeNode, [i, j])
-                if result == 1:
-                    xValuesSuccess.append(i)
-                    yValuesSuccess.append(j)
-                elif result == 0:
-                    xValuesFail.append(i)
-                    yValuesFail.append(j)
-        
-
-        plt.scatter(self.featureLists[0], self.featureLists[1], c=colors, zorder=15)
-        plt.plot(xValuesFail,yValuesFail,'s',color="#e75e5e", ms=8, mec="red", markeredgewidth=0.0, zorder=10)
-        plt.plot(xValuesSuccess,yValuesSuccess,'s',color="#77d582", ms=8, mec="red", markeredgewidth=0.0, zorder=5)
-        axes = plt.gca()
-        #make the axes a little bigger than our max values for some breathing room
-        axes.set_xlim([self.binLists[0][0]-0.5,self.binLists[0][len(self.binLists[0])-1]+0.5])
-        axes.set_ylim([self.binLists[1][0]-0.5,self.binLists[1][len(self.binLists[1])-1]+0.5])
-
-        plt.title(sys.argv[1])
-        plt.xlabel('Feature 1')
-        plt.ylabel('Feature 2')
-
-        plt.show()
-        
-
 
 
 def main():
@@ -401,16 +370,15 @@ def main():
     filename = sys.argv[1]
     #initialize the TestData object
     isDebugMode = True
-    numBins = 1
+    numBins = 10
+    maxDepth = 2
     #initialize tree
-    treeObj = ID3Tree(filename, numBins, isDebugMode)
+    treeObj = ID3Tree(filename, numBins, maxDepth, isDebugMode)
     #print the tree. spoilers: its REALLY ugly
     treeObj.printTree(treeObj.rootTreeNode, 0)
     #test it against the training data
-    #error = treeObj.testAgainstSelf()
-    #print "error: " + str(error)
-
-    #treeObj.printChart()
+    error = treeObj.testAgainstSelf()
+    print "error: " + str(error)
 
 
 
