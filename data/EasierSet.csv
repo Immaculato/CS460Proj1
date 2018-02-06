@@ -1,0 +1,10 @@
+Platform,Year_of_Release,Genre,Publisher,NA_Sales,EU_Sales,JP_Sales,Other_Sales,Global_Sales,Developer,Rating,Critic_Score
+PS3,2013,Racing,Deep Silver,0.02,0.01,0,0.01,0.04,"Eutechnyx, Deep Silver",M,13
+PS3,2009,Adventure,Codemasters,0.06,0.03,0,0.01,0.1,Team 17,M,17
+XB,2002,Misc,Infogrames,0.16,0.05,0,0.01,0.22,Data Design Interactive,E,19
+DS,2007,Action,Zoo Digital Publishing,0.13,0,0,0.01,0.14,FrontLine Studios,E10+,19
+PS4,2015,Sports,Bigben Interactive,0.04,0.06,0,0.02,0.11,HB Studios Multimedia,E,19
+Wii,2007,Platform,Metro 3D,0.06,0,0,0,0.07,Data Design Interactive,E,19
+X360,2013,Racing,Deep Silver,0.04,0.01,0,0.01,0.06,"Eutechnyx, Deep Silver",M,19
+Wii,2007,Sports,Zoo Digital Publishing,0.02,0,0,0,0.02,Black Lantern Studios,E10+,19
+DS,2007,Misc,Mindscape,1.15,0.4,0,0.15,1.7,Artefacts Studio,E,20

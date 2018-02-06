@@ -78,7 +78,8 @@ class ID3Tree:
                 #print(numEquals)
                 ratioInBin = (numEquals/len(classLabelList))
                 entropyTot += -(ratioInBin*math.log(ratioInBin, 2))
-
+        #print 'classLabelList', classLabelList
+        #print 'entropy', entropyTot
         return entropyTot
 
     def __informationGain(self, featureList, featureIndex, classLabelIndexList):
@@ -88,7 +89,6 @@ class ID3Tree:
         for i in classLabelIndexList:
             classLabelList.append(self.classLabelList[i])
 
-
         informationGainTot = self.__entropy(self.distinctClassLabels, classLabelList)
         #count the instances in each bin
         #2d list containing indexes of contents for each bin
@@ -96,15 +96,19 @@ class ID3Tree:
         for i in range(len(binList)-1):
             numInBin = 0.0
             #for each feature value, see if it fits in the current bin.
-            for k in range(len(featureList)):
+            for k in classLabelIndexList:
                 binContents.append(list())
+                #print 'indexK', k, 'binmin/max:', binList[i], binList[i+1]
                 if (featureList[k] >= binList[i] and featureList[k] <= binList[i+1]):
                     numInBin+=1
                     #add its class label to the bin contents
                     binContents[i].append(self.classLabelList[k])
+                    #print 'fitsinbin'
             #continue calculating information gain
-            informationGainTot -= (numInBin/len(featureList))*self.__entropy(self.distinctClassLabels, binContents[i])
+            infoGainPiece = (numInBin/len(classLabelList))*self.__entropy(self.distinctClassLabels, binContents[i])
+            informationGainTot -= infoGainPiece
 
+        #print 'final infogain', informationGainTot
         return informationGainTot
 
     def __ID3(self, examplesIndexList, unbranchedFeatures, root, depth):
@@ -335,7 +339,7 @@ def main():
     #initialize tree
     treeObj = ID3Tree(filename, numBins, isDebugMode)
     #print the tree. spoilers: its REALLY ugly
-    #treeObj.printTree(treeObj.rootTreeNode, 0)
+    treeObj.printTree(treeObj.rootTreeNode, 0)
     #test it against the training data
     error = treeObj.testAgainstSelf()
     print "error: " + str(error)
