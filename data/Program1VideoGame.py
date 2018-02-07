@@ -30,6 +30,7 @@ class ID3Tree:
     featureLists = list()
     #declare how each data type should be handled.
     featureTypes = ['s', 's', 's', 's', 'f', 'f', 'f', 'f', 'f', 's', 's']
+    #featureTypes = ['f', 'f', 'f', 'f', 'f']
     binLists = list()
     classLabelList = list()
     distinctClassLabels = set()
@@ -41,6 +42,7 @@ class ID3Tree:
     def __debugPrint(self):
         if self.debug:
             print " --- DEBUG INFO --- "
+            print "max depth: " + str(self.maxDepth)
             print "class labels: " + str(self.distinctClassLabels)
             print "class bins: " + str(self.distinctClassBins)
             for i in range(len(self.featureLists)):
@@ -161,6 +163,9 @@ class ID3Tree:
                     classLabelInstances[j]+=1
                     valueSorted=True
         
+        if examplesIndexList == [2593]:
+            print 'hello world'
+            print classLabelInstances
         #if every example has the same class label, we're done! label the node.
         for j in self.distinctClassBins:
             if classLabelInstances[j]==len(examplesIndexList):
@@ -194,7 +199,8 @@ class ID3Tree:
         #for each bin for the best feature, 
         for j in range(len(self.binLists[root.featureIndex])):
             #if it's a number feature,
-            if self.featureTypes[root.featureIndex] == 'd':
+            if self.featureTypes[root.featureIndex] == 'f':
+                print 'here'
                 #create a child node with the bin's min and max values.
                 if j < len(self.binLists[root.featureIndex])-1:
                     root.children.append(Node())
@@ -248,6 +254,9 @@ class ID3Tree:
                 features.append(self.featureLists[j][i])
             #traverse the tree to find the result.
             resultBin = self.__isTreeCorrect(self.rootTreeNode, features)
+            if resultBin == None:
+                print features
+                print 'RED ALERT!!!'
             if self.__valueInBin(classValue, resultBin):
                 successes += 1
 
@@ -269,6 +278,7 @@ class ID3Tree:
                 elif self.featureTypes[node.featureIndex] == 's':
                     if featureValue == child.featureString:
                         return self.__isTreeCorrect(child, features)
+
 
     #helper function to determine if value is in a distinctClassBin
     def __valueInBin(self, value, bin):
@@ -352,8 +362,6 @@ class ID3Tree:
 
     def printTree(self, root, depth):
         root.printNode()
-        if root.label == None and root.featureIndex == None:
-            print '*************************************RED ALERT*********************************************'
         depth+=1
         if root.children != None:
             for child in root.children:     
@@ -371,7 +379,7 @@ def main():
     #initialize the TestData object
     isDebugMode = True
     numBins = 10
-    maxDepth = 2
+    maxDepth = 3
     #initialize tree
     treeObj = ID3Tree(filename, numBins, maxDepth, isDebugMode)
     #print the tree. spoilers: its REALLY ugly
