@@ -6,7 +6,6 @@ import numpy as np
 import math
 import sys
 import copy
-import pdb
 
 class Node:
     children = None
@@ -22,11 +21,7 @@ class Node:
 class ID3Tree:
     debug = False
     featureLists = list()
-    #featureList1 = list()
-    #featureList2 = list()
     binLists = list()
-    #binList1 = list()
-    #binList2 = list()
     classLabelList = list()
     distinctClassLabels = set()
     unbranchedFeatures = set()
@@ -70,16 +65,13 @@ class ID3Tree:
             for k in range(len(classLabelList)):
                 if (int(classLabelList[k]) == int(i)):
                     numEquals+=1
-            #print(i, numEquals)
             #add to the total entropy for each bin (making sure it can be evaluated)
             if (numEquals == 0 or len(classLabelList) == 0):
                 entropyTot+=0
             else:
-                #print(numEquals)
                 ratioInBin = (numEquals/len(classLabelList))
                 entropyTot += -(ratioInBin*math.log(ratioInBin, 2))
-        #print 'classLabelList', classLabelList
-        #print 'entropy', entropyTot
+
         return entropyTot
 
     def __informationGain(self, featureList, featureIndex, classLabelIndexList):
@@ -98,17 +90,14 @@ class ID3Tree:
             #for each feature value, see if it fits in the current bin.
             for k in classLabelIndexList:
                 binContents.append(list())
-                #print 'indexK', k, 'binmin/max:', binList[i], binList[i+1]
                 if (featureList[k] >= binList[i] and featureList[k] <= binList[i+1]):
                     numInBin+=1
                     #add its class label to the bin contents
                     binContents[i].append(self.classLabelList[k])
-                    #print 'fitsinbin'
             #continue calculating information gain
             infoGainPiece = (numInBin/len(classLabelList))*self.__entropy(self.distinctClassLabels, binContents[i])
             informationGainTot -= infoGainPiece
 
-        #print 'final infogain', informationGainTot
         return informationGainTot
 
     def __ID3(self, examplesIndexList, unbranchedFeatures, root, depth):
@@ -131,7 +120,6 @@ class ID3Tree:
             return root
 
         #if we're out of features to branch on, or at a depth of 3, return the most common label (with 0 breaking ties)
-
         if len(unbranchedFeatures) == 0 or depth == 3:
             if num0>=num1:
                 root.label = 0
@@ -159,8 +147,7 @@ class ID3Tree:
             root.children.append(Node())
             root.children[j].featureMin=self.binLists[root.featureIndex][j]
             root.children[j].featureMax=self.binLists[root.featureIndex][j+1]
-            #root.children[j].printNode()
-            #print()
+
         #for each child
         for child in root.children:
             #create a new examples index list
@@ -170,7 +157,6 @@ class ID3Tree:
                 #if the example value fits the bin, add it into the new examples list.
                 if self.featureLists[root.featureIndex][exampleIndex] >= child.featureMin and self.featureLists[root.featureIndex][exampleIndex] <= child.featureMax:
                     newExamplesIndexList.append(exampleIndex)
-            #print newExamplesIndexList
             #if the new example list is empty, then we just make a leaf with the most common feature in the examples. we already found these values earlier.
             if len(newExamplesIndexList) == 0:
                 if num0>=num1:
@@ -214,9 +200,6 @@ class ID3Tree:
                 if featureValue >= child.featureMin and featureValue <= child.featureMax:
                     return self.__isTreeCorrect(child, features)
 
-
-
-
     #initialization takes a filename.
     def __init__(self, filename, numBins, debug):
         self.debug = debug
@@ -247,8 +230,6 @@ class ID3Tree:
 
         self.__discretizeFeaturesEquidistant(numBins)
         self.__debugPrint()
-        #self.printList()
-        #self.__informationGain(self.featureLists[0], 0, self.classLabelList)
 
         #make a list of the example indexes to start ID3 (all of them)
         examplesIndexList = list()
@@ -258,7 +239,6 @@ class ID3Tree:
         self.rootTreeNode = Node()
         #kick off ID3!
         self.__ID3(examplesIndexList, self.unbranchedFeatures, self.rootTreeNode, 0)
-        #print("entropy",self.__entropy(self.distinctClassLabels, self.classLabelList))
 
     def printList(self):
         for j in range(len(self.featureLists[0])):
@@ -272,8 +252,6 @@ class ID3Tree:
         if root.children != None:
             for child in root.children:     
                 print depth*'---',
-                #child.printNode()
-                #print child.children
                 self.printTree(child, depth)
 
     def printChart(self):
@@ -284,7 +262,6 @@ class ID3Tree:
 
 
         plt.hold(True)
-        #plt.subplot2grid((1, 1), (0, 0))
 
         stepSize = .1
         #populate our approximation points to visualize our decision area.
@@ -324,16 +301,13 @@ class ID3Tree:
         plt.ylabel('Feature 2')
 
         plt.show()
-        
-
-
 
 def main():
     if (len(sys.argv) != 2):
         print "Takes 1 command line argument: the name of the csv file."
         exit(-1)
     filename = sys.argv[1]
-    #initialize the TestData object
+    #initialize the ID3Tree object
     isDebugMode = False
     numBins = 10
     #initialize tree

@@ -2,13 +2,9 @@
 #Assignment: Project 1 - cS460G Machine Learning, Dr. Harrison
 #https://stackoverflow.com/questions/32796531/how-to-get-the-most-common-element-from-a-list-in-python
 
-
-import matplotlib.pyplot as plt
-import numpy as np
 import math
 import sys
 import copy
-import pdb
 from collections import Counter
 
 
@@ -162,10 +158,6 @@ class ID3Tree:
                 if not valueSorted and self.__valueInBin(self.classLabelList[i], j):
                     classLabelInstances[j]+=1
                     valueSorted=True
-        
-        if examplesIndexList == [2593]:
-            print 'hello world'
-            print classLabelInstances
         #if every example has the same class label, we're done! label the node.
         for j in self.distinctClassBins:
             if classLabelInstances[j]==len(examplesIndexList):
@@ -200,7 +192,6 @@ class ID3Tree:
         for j in range(len(self.binLists[root.featureIndex])):
             #if it's a number feature,
             if self.featureTypes[root.featureIndex] == 'f':
-                print 'here'
                 #create a child node with the bin's min and max values.
                 if j < len(self.binLists[root.featureIndex])-1:
                     root.children.append(Node())
@@ -376,8 +367,8 @@ def main():
         print "Takes 1 command line argument: the name of the csv file."
         exit(-1)
     filename = sys.argv[1]
-    #initialize the TestData object
-    isDebugMode = True
+    #initialize the ID3Tree object
+    isDebugMode = False
     numBins = 10
     maxDepth = 3
     #initialize tree
